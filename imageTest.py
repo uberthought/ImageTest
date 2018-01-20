@@ -3,23 +3,29 @@
 from PIL import Image
 import numpy as np
 
-image = Image.open('test.jpg').convert('RGB')
+image = Image.open('test.jpg')
+
+size = image.size
+
+image = image.convert('RGB')
+image = image.resize((256, 256))
 
 pixels = np.array(image)
 
-pixels = pixels[:, :, (1, 2)]
+red = pixels[:, :, (0,)]
+green = pixels[:, :, (1,)]
+blue = pixels[:, :, (2,)]
 
-a = pixels.shape
+zeros = np.zeros(image.size + (1,), dtype=pixels.dtype)
 
-zeros = np.zeros(pixels.shape[0:2]).reshape(pixels.shape[0], pixels.shape[1], 1)
+pixels2 = np.concatenate((red, green, zeros), axis=2)
 
-print(zeros.shape)
-print(pixels.shape)
+# pixels2 = pixels2[0::4,0::4]
 
-foo = np.concatenate((pixels, zeros), axis=2)
+print(pixels2.shape)
 
-print(foo.shape)
-
-image2 = Image.fromarray(foo, "RGB")
+image2 = Image.fromarray(pixels2, "RGB")
+size = [int(x/4) for x in size]
+image2 = image2.resize(size)
 
 image2.save('test2.jpg')
