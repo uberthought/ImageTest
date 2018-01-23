@@ -37,9 +37,22 @@ def createOutput(input, shape, name):
 
             return output
 
+def createConv(input, filters, name):
+        with tf.name_scope(name):
+            input_shape = input.shape.as_list()[1:]
+            dimensions = input_shape[-1]
+            filter = tf.Variable(tf.truncated_normal([3, 3, dimensions, filters], stddev=1.0/math.sqrt(float(3 * 3 * dimensions * filters)), dtype=tf.float32), name='filter')
+            biases = tf.Variable(tf.zeros(input_shape[:-1] + [filters], dtype=tf.float32), name='biases')
+
+            output = tf.nn.conv2d(input=input, filter=filter, strides=[1, 1, 1, 1], padding='SAME')
+            output = tf.add(output, biases)
+            output = tf.nn.tanh(output)
+
+            return output
+
 class Model:
     size=64
-    output_size=4
+    output_size=10
 
     def __init__(self):
 
@@ -59,10 +72,11 @@ class Model:
         input = tf.cast(input, tf.float32)
         input = tf.multiply(input, 1 / 255)
 
-        conv = tf.layers.conv2d(input, 32, [3,3], padding='same', activation=tf.nn.relu)
-        # hidden = createHidden(input, (16,), 'hidden')
+        conv1 = createConv(input, 8, 'conv1')
+        conv2 = createConv(conv1, 8, 'conv2')
+        hidden = createHidden(conv2, (16,), 'hidden')
 
-        output = createOutput(conv, (output_size,), 'output')
+        output = createOutput(hidden, (output_size,), 'output')
 
         self.loss = tf.reduce_mean(tf.losses.mean_squared_error(self.Y, output), name='loss')
         self.run_train = tf.train.AdagradOptimizer(.1).minimize(self.loss)
