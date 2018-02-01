@@ -4,39 +4,6 @@ import os.path
 import math
 import time
 
-def createHidden(input, shape, name):
-        input_units = int(np.prod(input.shape.as_list()[1:]))
-        output_units = np.prod(shape)
-        with tf.name_scope(name):
-            weights = tf.Variable(tf.truncated_normal([input_units, output_units], stddev=1.0/math.sqrt(float(input_units)), dtype=tf.float32), name='weights')
-            biases = tf.Variable(tf.zeros([output_units], dtype=tf.float32), name='biases')
-
-            flatten = tf.reshape(input, (-1, input_units))
-            output = tf.matmul(flatten, weights)
-            output = tf.add(output, biases)
-            output = tf.nn.relu(output)
-            if input_units == output_units:
-                output = tf.add(flatten, output)
-            output = tf.reshape(output, (-1,) + shape)
-
-            return output
-
-def createOutput(input, shape, name):
-        input_units = int(np.prod(input.shape.as_list()[1:]))
-        output_units = int(np.prod(shape))
-        with tf.name_scope(name):
-            weights = tf.Variable(tf.truncated_normal([input_units, output_units], stddev=1.0/math.sqrt(float(input_units)), dtype=tf.float32), name='weights')
-            biases = tf.Variable(tf.zeros([output_units], dtype=tf.float32), name='biases')
-
-            flatten = tf.reshape(input, (-1, input_units))
-            output = tf.matmul(flatten, weights)
-            output = tf.add(output, biases)
-            if input_units == output_units:
-                output = tf.add(flatten, output)
-            output = tf.reshape(output, (-1,) + shape)
-
-            return output
-
 def createConv(input, filters, stride, name):
         with tf.name_scope(name):
             size = input.shape.as_list()[1] / stride
@@ -46,6 +13,17 @@ def createConv(input, filters, stride, name):
 
             output = tf.nn.conv2d(input=input, filter=filter, strides=[1, stride, stride, 1], padding='SAME')
             output = tf.add(output, biases)
+
+            if dimensions == filters:
+                if stride == 1:
+                    pool = input
+                if stride == 2:
+                    pool = tf.nn.pool(input, [stride, stride], "AVG", "VALID", strides=[stride, stride])
+                output = tf.add(output, pool)
+
+            # output = tf.maximum(tf.zeros_like(output), output)
+            # output = tf.minimum(tf.ones_like(output), output)
+            # output = tf.nn.relu(output)
             output = tf.nn.tanh(output)
 
             return output
@@ -58,20 +36,19 @@ def upsample(input, name):
             output = (tf.reshape(input, [-1] + shape[-dimensions:]))
 
             for i in range(dimensions, 0, -1):
-                output = tf.concat([output, tf.zeros_like(output)], i)
+                output = tf.concat([output, output], i)
+                # output = tf.concat([output, tf.zeros_like(output)], i)
             output_size = [-1] + [s * 2 for s in shape[1:-1]] + [shape[-1]]
             output = tf.reshape(output, output_size)
 
             return output
 
 class Model:
-    size=64
-    output_size=10
+    size=128
 
     def __init__(self):
 
         size = Model.size
-        output_size = Model.output_size
         shape = (size, size, 3)
 
         self.sess = tf.Session()
@@ -80,19 +57,30 @@ class Model:
         self.X = tf.placeholder(tf.uint8, shape=(None,) + shape, name='X')
         self.Y = tf.placeholder(tf.uint8, shape=(None,) + shape, name='Y')
 
-        units = np.prod(shape)
+        input = tf.multiply(tf.cast(self.X, tf.float32), 1 / 255)
 
-        input = self.X
-        input = tf.cast(input, tf.float32)
-        input = tf.multiply(input, 1 / 255)
+        layer = input
+        original_size = np.prod(layer.get_shape().as_list()[1:])
 
-        conv1 = createConv(input, 8, 2, 'conv1')
+        layer = createConv(layer, 8, 1, 'conv')
+        layer = createConv(layer, 8, 2, 'conv')
+        layer = createConv(layer, 8, 2, 'conv')
+        layer = createConv(layer, 3, 1, 'conv')
 
-        up = upsample(conv1, "upsample")
+        compressed_size = np.prod(layer.get_shape().as_list()[1:])
+        print(original_size, compressed_size, 1 - compressed_size / original_size)
+        # exit()
 
-        conv2 = createConv(up, 3, 1, 'conv2')
+        layer = createConv(layer, 8, 1, 'conv')
+        layer = upsample(layer, 'up')
+        layer = createConv(layer, 8, 1, 'conv')
+        layer = upsample(layer, 'up')
+        layer = createConv(layer, 8, 1, 'conv')
+        layer = createConv(layer, 3, 1, 'conv')
 
-        output = conv2
+        layer = tf.nn.relu(layer)
+
+        output = layer
 
         self.output = tf.cast(tf.multiply(output, 255), tf.uint8)
 
@@ -126,10 +114,10 @@ class Model:
         feed_dict = {self.X: X, self.Y: Y}
         loss = math.inf
         i = 0
-        while loss > .001 and i < 1000:
+        while i < 100:
             loss, _, summary = self.sess.run([self.loss, self.run_train, self.summary], feed_dict=feed_dict)
             i += 1
-            # self.summary_writer.add_summary(summary)
-            if i % 100 == 0:
-                print(i, loss)
+
+        self.summary_writer.add_summary(summary)
+
         return loss
