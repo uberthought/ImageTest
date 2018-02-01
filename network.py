@@ -37,16 +37,30 @@ def createOutput(input, shape, name):
 
             return output
 
-def createConv(input, filters, name):
+def createConv(input, filters, stride, name):
         with tf.name_scope(name):
-            input_shape = input.shape.as_list()[1:]
-            dimensions = input_shape[-1]
+            size = input.shape.as_list()[1] / stride
+            dimensions = input.shape.as_list()[-1]
             filter = tf.Variable(tf.truncated_normal([3, 3, dimensions, filters], stddev=1.0/math.sqrt(float(3 * 3 * dimensions * filters)), dtype=tf.float32), name='filter')
-            biases = tf.Variable(tf.zeros(input_shape[:-1] + [filters], dtype=tf.float32), name='biases')
+            biases = tf.Variable(tf.zeros([size, size, filters], dtype=tf.float32), name='biases')
 
-            output = tf.nn.conv2d(input=input, filter=filter, strides=[1, 1, 1, 1], padding='SAME')
+            output = tf.nn.conv2d(input=input, filter=filter, strides=[1, stride, stride, 1], padding='SAME')
             output = tf.add(output, biases)
             output = tf.nn.tanh(output)
+
+            return output
+
+def upsample(input, name):
+        with tf.name_scope(name):
+            shape = input.get_shape().as_list()
+            dimensions = len(shape[1:-1])
+
+            output = (tf.reshape(input, [-1] + shape[-dimensions:]))
+
+            for i in range(dimensions, 0, -1):
+                output = tf.concat([output, tf.zeros_like(output)], i)
+            output_size = [-1] + [s * 2 for s in shape[1:-1]] + [shape[-1]]
+            output = tf.reshape(output, output_size)
 
             return output
 
@@ -63,8 +77,8 @@ class Model:
         self.sess = tf.Session()
 
 
-        self.X = tf.placeholder(tf.int8, shape=(None,) + shape, name='X')
-        self.Y = tf.placeholder(tf.float32, shape=(None, output_size), name='Y')
+        self.X = tf.placeholder(tf.uint8, shape=(None,) + shape, name='X')
+        self.Y = tf.placeholder(tf.uint8, shape=(None,) + shape, name='Y')
 
         units = np.prod(shape)
 
@@ -72,16 +86,18 @@ class Model:
         input = tf.cast(input, tf.float32)
         input = tf.multiply(input, 1 / 255)
 
-        conv1 = createConv(input, 8, 'conv1')
-        conv2 = createConv(conv1, 8, 'conv2')
-        hidden = createHidden(conv2, (16,), 'hidden')
+        conv1 = createConv(input, 8, 2, 'conv1')
 
-        output = createOutput(hidden, (output_size,), 'output')
+        up = upsample(conv1, "upsample")
 
-        self.loss = tf.reduce_mean(tf.losses.mean_squared_error(self.Y, output), name='loss')
+        conv2 = createConv(up, 3, 1, 'conv2')
+
+        output = conv2
+
+        self.output = tf.cast(tf.multiply(output, 255), tf.uint8)
+
+        self.loss = tf.reduce_mean(tf.losses.mean_squared_error(input, output), name='loss')
         self.run_train = tf.train.AdagradOptimizer(.1).minimize(self.loss)
-
-        self.output = output
 
         self.summary_writer = tf.summary.FileWriter('./graph', self.sess.graph)
         loss_summary = tf.summary.scalar('loss', self.loss)
@@ -108,7 +124,6 @@ class Model:
 
     def train(self, X, Y):
         feed_dict = {self.X: X, self.Y: Y}
-        # start = time.time()
         loss = math.inf
         i = 0
         while loss > .001 and i < 1000:
@@ -117,5 +132,4 @@ class Model:
             # self.summary_writer.add_summary(summary)
             if i % 100 == 0:
                 print(i, loss)
-        # print(time.time() - start)
         return loss
