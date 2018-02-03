@@ -82,9 +82,7 @@ class Model:
         outer_units = 3
         inner_units = 3
 
-        layer = createConv(layer, outer_units, 1, 'conv')
-        layer = createConv(layer, outer_units, 1, 'conv')
-        layer = createConv(layer, outer_units, 1, 'conv')
+        # layer = createConv(layer, outer_units, 1, 'conv')
 
         layer = createConv(layer, inner_units, 2, 'conv')
         layer = createConv(layer, inner_units, 2, 'conv')
@@ -96,9 +94,7 @@ class Model:
         layer = upsample(layer, inner_units, 'up')
         layer = upsample(layer, inner_units, 'up')
 
-        layer = createConv(layer, outer_units, 1, 'conv')
-        layer = createConv(layer, outer_units, 1, 'conv')
-        layer = createConv(layer, outer_units, 1, 'conv')
+        # layer = createConv(layer, outer_units, 1, 'conv')
 
         layer = createConv(layer, 3, 1, 'conv')
 
@@ -139,7 +135,7 @@ class Model:
     def train(self, X, Y):
 
         x = X
-        batch = 32
+        batch = 2
         if len(X) > batch:
             i = np.random.choice(range(len(X)), batch)
             x = X[i]
@@ -147,7 +143,7 @@ class Model:
         feed_dict = {self.X: x, self.Y: x}
         loss = math.inf
         i = 0
-        while i < 500:
+        while i < 100:
             loss, _, summary = self.sess.run(
                 [self.loss, self.run_train, self.summary], feed_dict=feed_dict)
             i += 1
