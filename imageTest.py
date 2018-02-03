@@ -42,6 +42,9 @@ while True:
     pixels = testing[0:1:1][0]
     result = model.run([pixels])[0]
     diff = np.absolute(pixels - result)
+    diff = (diff[:,:, 0] + diff[:,:, 1] + diff[:,:, 2]) / 3
+    diff = np.dstack([diff, diff, diff])
+    diff = diff.astype('uint8')
     pixels = np.concatenate([pixels, result, diff], axis=1)
     image = Image.fromarray(pixels, "RGB")
     image = image.resize((256 * 3, 256))

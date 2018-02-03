@@ -62,12 +62,14 @@ def upsample(input, units, name):
 
 
 class Model:
-    size = 64
+    size = 128
 
     def __init__(self):
 
         size = Model.size
         shape = (size, size, 3)
+
+        self.eloss = .5
 
         self.sess = tf.Session()
 
@@ -80,10 +82,14 @@ class Model:
         original_size = np.prod(layer.get_shape().as_list()[1:])
 
         outer_units = 3
-        inner_units = 3
+        inner_units = 4
 
-        # layer = createConv(layer, outer_units, 1, 'conv')
+        layer = createConv(layer, outer_units, 1, 'conv')
+        layer = createConv(layer, outer_units, 1, 'conv')
+        layer = createConv(layer, outer_units, 1, 'conv')
+        layer = createConv(layer, outer_units, 1, 'conv')
 
+        layer = createConv(layer, inner_units, 2, 'conv')
         layer = createConv(layer, inner_units, 2, 'conv')
         layer = createConv(layer, inner_units, 2, 'conv')
 
@@ -93,8 +99,12 @@ class Model:
 
         layer = upsample(layer, inner_units, 'up')
         layer = upsample(layer, inner_units, 'up')
+        layer = upsample(layer, inner_units, 'up')
 
-        # layer = createConv(layer, outer_units, 1, 'conv')
+        layer = createConv(layer, outer_units, 1, 'conv')
+        layer = createConv(layer, outer_units, 1, 'conv')
+        layer = createConv(layer, outer_units, 1, 'conv')
+        layer = createConv(layer, outer_units, 1, 'conv')
 
         layer = createConv(layer, 3, 1, 'conv')
 
@@ -135,19 +145,21 @@ class Model:
     def train(self, X, Y):
 
         x = X
-        batch = 2
+        batch = 4
         if len(X) > batch:
             i = np.random.choice(range(len(X)), batch)
             x = X[i]
 
         feed_dict = {self.X: x, self.Y: x}
+
         loss = math.inf
         i = 0
-        while i < 100:
+        while i < 1000 and loss > self.eloss:
             loss, _, summary = self.sess.run(
                 [self.loss, self.run_train, self.summary], feed_dict=feed_dict)
             i += 1
 
+        self.eloss = (self.eloss + loss) / 2
         self.summary_writer.add_summary(summary)
 
-        return loss
+        return self.eloss
