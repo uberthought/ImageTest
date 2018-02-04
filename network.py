@@ -81,14 +81,15 @@ class Model:
         layer = input
         original_size = np.prod(layer.get_shape().as_list()[1:])
 
-        outer_units = 3
-        inner_units = 4
+        outer_units = 32
+        inner_units = 256
 
-        layer = createConv(layer, outer_units, 1, 'conv')
-        layer = createConv(layer, outer_units, 1, 'conv')
-        layer = createConv(layer, outer_units, 1, 'conv')
-        layer = createConv(layer, outer_units, 1, 'conv')
+        # layer = createConv(layer, outer_units, 1, 'conv')
 
+        layer = createConv(layer, inner_units, 2, 'conv')
+        layer = createConv(layer, inner_units, 2, 'conv')
+        layer = createConv(layer, inner_units, 2, 'conv')
+        layer = createConv(layer, inner_units, 2, 'conv')
         layer = createConv(layer, inner_units, 2, 'conv')
         layer = createConv(layer, inner_units, 2, 'conv')
         layer = createConv(layer, inner_units, 2, 'conv')
@@ -100,11 +101,12 @@ class Model:
         layer = upsample(layer, inner_units, 'up')
         layer = upsample(layer, inner_units, 'up')
         layer = upsample(layer, inner_units, 'up')
+        layer = upsample(layer, inner_units, 'up')
+        layer = upsample(layer, inner_units, 'up')
+        layer = upsample(layer, inner_units, 'up')
+        layer = upsample(layer, inner_units, 'up')
 
-        layer = createConv(layer, outer_units, 1, 'conv')
-        layer = createConv(layer, outer_units, 1, 'conv')
-        layer = createConv(layer, outer_units, 1, 'conv')
-        layer = createConv(layer, outer_units, 1, 'conv')
+        # layer = createConv(layer, outer_units, 1, 'conv')
 
         layer = createConv(layer, 3, 1, 'conv')
 
@@ -154,12 +156,13 @@ class Model:
 
         loss = math.inf
         i = 0
-        while i < 1000 and loss > self.eloss:
+        while i < 50 and loss > self.eloss:
             loss, _, summary = self.sess.run(
                 [self.loss, self.run_train, self.summary], feed_dict=feed_dict)
             i += 1
 
-        self.eloss = (self.eloss + loss) / 2
+        weight = 0.25
+        self.eloss = loss * weight + self.eloss * (1.0 - weight)
         self.summary_writer.add_summary(summary)
 
         return self.eloss
