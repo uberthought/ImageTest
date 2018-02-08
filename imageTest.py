@@ -68,9 +68,10 @@ if not os.path.exists('results'):
 
 j = 0
 while True:
-    loss = model.train(training, training)
+    train_loss = model.train(training)
+    test_loss = model.test(testing)
     model.save()
-    print(loss)
+    print(train_loss, test_loss)
 
     for i in range(testing.shape[0]):
         pixels = testing[i:i + 1:1][0]

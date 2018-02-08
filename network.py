@@ -118,18 +118,21 @@ class Model:
 
         self.output = tf.cast(tf.multiply(output, 255), tf.uint8)
 
-        self.loss = tf.reduce_mean(
-            tf.losses.mean_squared_error(input, output), name='loss')
-        self.run_train = tf.train.AdagradOptimizer(.1).minimize(self.loss)
+        self.train_loss = tf.reduce_mean(
+            tf.losses.mean_squared_error(input, output), name='train_loss')
+        self.run_train = tf.train.AdagradOptimizer(.1).minimize(self.train_loss)
+
+        self.test_loss = tf.reduce_mean(tf.losses.mean_squared_error(input, output), name='test_loss')
 
         self.summary_writer = tf.summary.FileWriter('./graph', self.sess.graph)
-        loss_summary = tf.summary.scalar('loss', self.loss)
+        self.train_loss_summary = tf.summary.scalar('train_loss', self.train_loss)
+        self.test_loss_summary = tf.summary.scalar('test_loss', self.test_loss)
         # model_expected_summary = tf.summary.histogram('value expected', self.values)
         # model_predicted_summary = tf.summary.histogram('value prediction', self.model_prediction)
         # model_hidden0_summary = tf.summary.histogram('model hidden 0', model_hidden0)
         # model_hidden1_summary = tf.summary.histogram('model hidden 1',
         # model_hidden1)
-        self.summary = tf.summary.merge([loss_summary])
+        # self.summary = tf.summary.merge([train_loss_summary, test_loss_summary])
 
         self.sess.run(tf.global_variables_initializer())
 
@@ -146,8 +149,7 @@ class Model:
     def run(self, X):
         return self.sess.run(self.output, feed_dict={self.X: X})
 
-    def train(self, X, Y):
-
+    def train(self, X):
         x = X
         batch = 4
         if len(X) > batch:
@@ -160,11 +162,16 @@ class Model:
         i = 0
         while i < 100 and loss > self.eloss:
             loss, _, summary, step = self.sess.run(
-                [self.loss, self.run_train, self.summary, self.step], feed_dict=feed_dict)
+                [self.train_loss, self.run_train, self.train_loss_summary, self.step], feed_dict=feed_dict)
             i += 1
 
         weight = 0.5
         self.eloss = loss * weight + self.eloss * (1.0 - weight)
         self.summary_writer.add_summary(summary, step)
 
-        return self.eloss
+        return loss
+
+    def test(self, X):
+        loss, summary, step = self.sess.run([self.test_loss, self.test_loss_summary, self.global_step], feed_dict={self.X: X})
+        self.summary_writer.add_summary(summary, step)
+        return loss
