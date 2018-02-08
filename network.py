@@ -37,13 +37,11 @@ def createConv(input, filters, stride, name):
         #     output = tf.add(output, pool)
 
         if dimensions == filters and stride == 1:
-            output = tf.nn.tanh(output)
-            # output = tf.nn.relu(output)
+            output = tf.nn.relu(output)
             output = tf.add(output, input)
 
         # output = myrelu(output)
-        # output = tf.nn.relu(output)
-        output = tf.nn.tanh(output)
+        output = tf.nn.relu(output)
 
         return output
 
@@ -67,7 +65,7 @@ def upsample(input, units, name):
 
 
 class Model:
-    size = 32
+    size = 64
 
     def __init__(self):
 
@@ -84,49 +82,33 @@ class Model:
 
         self.X = tf.placeholder(tf.uint8, shape=(None,) + shape, name='X')
         self.Y = tf.placeholder(tf.uint8, shape=(None,) + shape, name='Y')
-        self.steps = 0
 
         input = tf.multiply(tf.cast(self.X, tf.float32), 1 / 255)
 
         layer = input
         original_size = np.prod(layer.get_shape().as_list()[1:])
 
-        outer_units = 32
-        inner_units = 32
+        outer_units = 64
+        outer_layers = 12
 
-        layer = createConv(layer, outer_units, 1, 'conv')
-        layer = createConv(layer, outer_units, 1, 'conv')
-        layer = createConv(layer, outer_units, 1, 'conv')
-        layer = createConv(layer, outer_units, 1, 'conv')
-        layer = createConv(layer, outer_units, 1, 'conv')
-        layer = createConv(layer, outer_units, 1, 'conv')
+        inner_units = 64
+        inner_layers = 5
 
-        # layer = createConv(layer, inner_units, 2, 'conv')
-        # layer = createConv(layer, inner_units, 2, 'conv')
-        # layer = createConv(layer, inner_units, 2, 'conv')
-        # layer = createConv(layer, inner_units, 2, 'conv')
-        layer = createConv(layer, inner_units, 2, 'conv')
-        layer = createConv(layer, inner_units, 2, 'conv')
-        layer = createConv(layer, inner_units, 2, 'conv')
+        for i in range(outer_layers):
+            layer = createConv(layer, outer_units, 1, 'conv')
+
+        for i in range(inner_layers):
+            layer = createConv(layer, inner_units, 2, 'conv')
 
         compressed_size = np.prod(layer.get_shape().as_list()[1:])
         print(original_size, compressed_size,
               1 - compressed_size / original_size)
 
-        layer = upsample(layer, inner_units, 'up')
-        layer = upsample(layer, inner_units, 'up')
-        layer = upsample(layer, inner_units, 'up')
-        # layer = upsample(layer, inner_units, 'up')
-        # layer = upsample(layer, inner_units, 'up')
-        # layer = upsample(layer, inner_units, 'up')
-        # layer = upsample(layer, inner_units, 'up')
+        for i in range(inner_layers):
+            layer = upsample(layer, inner_units, 'up')
 
-        layer = createConv(layer, outer_units, 1, 'conv')
-        layer = createConv(layer, outer_units, 1, 'conv')
-        layer = createConv(layer, outer_units, 1, 'conv')
-        layer = createConv(layer, outer_units, 1, 'conv')
-        layer = createConv(layer, outer_units, 1, 'conv')
-        layer = createConv(layer, outer_units, 1, 'conv')
+        for i in range(outer_layers):
+            layer = createConv(layer, outer_units, 1, 'conv')
 
         layer = createConv(layer, 3, 1, 'conv')
 
@@ -167,7 +149,7 @@ class Model:
     def train(self, X, Y):
 
         x = X
-        batch = 16
+        batch = 4
         if len(X) > batch:
             i = np.random.choice(range(len(X)), batch)
             x = X[i]
@@ -176,12 +158,10 @@ class Model:
 
         loss = math.inf
         i = 0
-        while i < 200 and loss > self.eloss:
+        while i < 100 and loss > self.eloss:
             loss, _, summary, step = self.sess.run(
                 [self.loss, self.run_train, self.summary, self.step], feed_dict=feed_dict)
             i += 1
-
-        self.steps = self.steps + i
 
         weight = 0.5
         self.eloss = loss * weight + self.eloss * (1.0 - weight)
