@@ -7,7 +7,7 @@ import os
 from network import Model
 
 
-def load_images(directory):
+def load_images(directory, transform):
     result = np.array([], dtype=np.uint8).reshape(0, Model.size, Model.size, 3)
     names = os.listdir(directory)
     names = [x for x in names if not x.startswith('.')]
@@ -21,57 +21,57 @@ def load_images(directory):
         pixels = np.array(image)
         result = np.concatenate((result, [pixels]), axis=0)
 
-        # 90
-        image = image.rotate(90)
-        pixels = np.array(image)
-        result = np.concatenate((result, [pixels]), axis=0)
+        if transform:
+            # 90
+            image = image.rotate(90)
+            pixels = np.array(image)
+            result = np.concatenate((result, [pixels]), axis=0)
 
-        # 180
-        image = image.rotate(90)
-        pixels = np.array(image)
-        result = np.concatenate((result, [pixels]), axis=0)
+            # 180
+            image = image.rotate(90)
+            pixels = np.array(image)
+            result = np.concatenate((result, [pixels]), axis=0)
 
-        # 270
-        image = image.rotate(90)
-        pixels = np.array(image)
-        result = np.concatenate((result, [pixels]), axis=0)
+            # 270
+            image = image.rotate(90)
+            pixels = np.array(image)
+            result = np.concatenate((result, [pixels]), axis=0)
 
-        # flip
-        image = image.rotate(90)
-        image = image.transpose(Image.FLIP_LEFT_RIGHT)
-        pixels = np.array(image)
+            # flip
+            image = image.rotate(90)
+            image = image.transpose(Image.FLIP_LEFT_RIGHT)
+            pixels = np.array(image)
 
-        # flip 90
-        result = np.concatenate((result, [pixels]), axis=0)
-        image = image.rotate(90)
-        pixels = np.array(image)
-        result = np.concatenate((result, [pixels]), axis=0)
+            # flip 90
+            result = np.concatenate((result, [pixels]), axis=0)
+            image = image.rotate(90)
+            pixels = np.array(image)
+            result = np.concatenate((result, [pixels]), axis=0)
 
-        # flip 180
-        image = image.rotate(90)
-        pixels = np.array(image)
-        result = np.concatenate((result, [pixels]), axis=0)
+            # flip 180
+            image = image.rotate(90)
+            pixels = np.array(image)
+            result = np.concatenate((result, [pixels]), axis=0)
 
-        # flip 270
-        image = image.rotate(90)
-        pixels = np.array(image)
-        result = np.concatenate((result, [pixels]), axis=0)
+            # flip 270
+            image = image.rotate(90)
+            pixels = np.array(image)
+            result = np.concatenate((result, [pixels]), axis=0)
+
     return result
 
 model = Model()
 
-training = load_images('training')
-testing = load_images('testing')
+training = load_images('training', True)
+# testing = load_images('testing', False)
+testing = load_images('testing', True)
 
 if not os.path.exists('results'):
     os.makedirs('results')
 
 j = 0
 while True:
-    train_loss = model.train(training)
-    test_loss = model.test(testing)
-    model.save()
-    print(train_loss, test_loss)
+    loss = model.train(training, testing)
 
     for i in range(testing.shape[0]):
         pixels = testing[i:i + 1:1][0]
