@@ -20,14 +20,14 @@ def createConv(input, filters, stride, name):
 
         output = output3x3 + biases
 
-        if dimensions == filters:
-            if stride == 1:
-                pool = input
-            if stride == 2:
-                pool = tf.nn.pool(input, [stride, stride], "AVG", "VALID", strides=[stride, stride])
-            output = output + pool
+        # if dimensions == filters:
+        #     if stride == 1:
+        #         pool = input
+        #     if stride == 2:
+        #         pool = tf.nn.pool(input, [stride, stride], "AVG", "VALID", strides=[stride, stride])
+        #     output = output + pool
 
-        output = tf.maximum(output * 0.01, output)
+        output = tf.maximum(output * 0.1, output)
         # output = tf.nn.relu(output)
 
         return output
@@ -51,7 +51,7 @@ def upsample(input, units, name):
 
 
 class Model:
-    size = 32
+    size = 64
 
     def __init__(self):
 
@@ -74,10 +74,10 @@ class Model:
         original_size = np.prod(layer.get_shape().as_list()[1:])
 
         outer_units = 16
-        outer_layers = 2
+        outer_layers = 4
 
         inner_units = 16
-        inner_layers = 2
+        inner_layers = 3
 
         for i in range(outer_layers):
             layer = createConv(layer, outer_units, 1, 'conv')
@@ -113,7 +113,7 @@ class Model:
 
         self.test_loss = tf.reduce_mean(tf.losses.mean_squared_error(input, output), name='test_loss')
 
-        self.summary_writer = tf.summary.FileWriter('./graph', self.sess.graph)
+        self.summary_writer = tf.summary.FileWriter('./summary/run2', self.sess.graph)
         self.train_loss_summary = tf.summary.scalar('train_loss', self.train_loss)
         self.test_loss_summary = tf.summary.scalar('test_loss', self.test_loss)
         center_layer_summary = tf.summary.histogram('center_layer', center_layer)
@@ -146,18 +146,21 @@ class Model:
         last_loss = 0
         eloss = self.sess.run(self.global_loss, feed_dict={self.X: x})
 
-        while i < 1000 and train_loss > eloss * 0.95 and train_loss != last_loss:
+        while i < 1000 and train_loss > eloss * .95 and train_loss != last_loss:
             last_loss = train_loss
             train_loss, _, step = self.sess.run([self.train_loss, self.run_train, self.step], feed_dict={self.X: x})
             i = i + 1
 
             if i % 100 == 0:
                 print('training', ((eloss - train_loss) / eloss))
+                if train_loss < 0.25:
+                    self.sess.run([self.eloss], feed_dict={self.X: x})
+                    train_summary = self.sess.run(self.train_loss_summary, feed_dict={self.X: x})
+                    test_summary = self.sess.run(self.summary, feed_dict={self.X: testing})
+                    self.summary_writer.add_summary(train_summary, step)
+                    self.summary_writer.add_summary(test_summary, step)
+                self.save()
                 
-
-        if train_loss == last_loss:
-            print('hun?')
-        
         if train_loss < 0.25 and train_loss != last_loss:
             self.sess.run([self.eloss], feed_dict={self.X: x})
             train_summary = self.sess.run(self.train_loss_summary, feed_dict={self.X: x})

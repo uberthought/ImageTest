@@ -63,14 +63,12 @@ def load_images(directory, transform):
 model = Model()
 
 training = load_images('training', True)
-# testing = load_images('testing', False)
-testing = load_images('testing', True)
+testing = load_images('testing', False)
 
 if not os.path.exists('results'):
     os.makedirs('results')
 
-j = 0
-while True:
+for j in range(100):
     loss = model.train(training, testing)
 
     for i in range(testing.shape[0]):
@@ -91,5 +89,3 @@ while True:
     # image = Image.fromarray(pixels, "RGB")
     # image = image.resize((256 * 3, 256))
     # image.save('results/image' + str(j).zfill(3) + '.png')
-
-    j += 1
