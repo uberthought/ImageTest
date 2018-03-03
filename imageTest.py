@@ -56,7 +56,7 @@ model = Model()
 if not os.path.exists('results'):
     os.makedirs('results')
 
-training_names = load_train_names('101_ObjectCategories')
+training_names = load_train_names('training')
 testing = load_test_images('testing')
 
 for j in range(10):

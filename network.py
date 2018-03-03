@@ -3,6 +3,7 @@ import numpy as np
 import os.path
 import math
 import random
+import time
 
 class Model:
     size = 32
@@ -141,15 +142,21 @@ class Model:
         return self.sess.run(self.output, feed_dict={self.X: X})
 
     def train(self, training, testing):
+        
         i = 0
         train_loss = math.inf
         eloss = self.sess.run(self.global_loss)
+        start = time.time()
 
         while i < 1024 and train_loss > eloss * 0.95:
             
             i += 1
             train_loss, _, step, train_summary = self.sess.run([self.train_loss2, self.run_train, self.step, self.train_loss_summary], feed_dict={self.X: training})
             self.summary_writer.add_summary(train_summary, step)
+
+        end = time.time()
+        iteration_per_second = i / (end - start)
+
 
         test_loss, test_summary = self.sess.run([self.test_loss2, self.summary], feed_dict={self.X: testing})
         self.summary_writer.add_summary(test_summary, step)
@@ -158,6 +165,6 @@ class Model:
 
         self.save()
 
-        print('done', eloss, train_loss, ((eloss - train_loss) / eloss))
+        print('training loss', train_loss, 'iteration/second', iteration_per_second)
 
         return train_loss
