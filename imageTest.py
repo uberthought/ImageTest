@@ -60,7 +60,7 @@ training_names = load_train_names('training')
 testing = load_test_images('testing')
 
 for j in range(10):
-    training = load_images(random.sample(training_names, 2))
+    training = load_images(random.sample(training_names, 4))
     loss = model.train(training, testing)
 
     for i in range(testing.shape[0]):

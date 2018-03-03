@@ -6,7 +6,7 @@ import random
 import time
 
 class Model:
-    size = 32
+    size = 128
 
     def __init__(self):
 
@@ -31,11 +31,11 @@ class Model:
         layer = input
         original_size = np.prod(layer.get_shape().as_list()[1:])
 
-        outer_units = 4
-        outer_layers = 0
+        outer_units = 128
+        outer_layers = 2
 
         inner_units = 128
-        inner_layers = 5
+        inner_layers = 4
 
         run = "run1"
 
@@ -148,7 +148,7 @@ class Model:
         eloss = self.sess.run(self.global_loss)
         start = time.time()
 
-        while i < 1024 and train_loss > eloss * 0.95:
+        while i < 1024 and train_loss > eloss * 0.90:
             
             i += 1
             train_loss, _, step, train_summary = self.sess.run([self.train_loss2, self.run_train, self.step, self.train_loss_summary], feed_dict={self.X: training})
