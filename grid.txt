@@ -1,3 +1,42 @@
-run0 3x1 16x3 290k .01229
-run1 16x2 16x3 182k .01558
-run2 16x4 16x3 
+run1 3           16x2 16x3
+run2 3           16x4 16x3
+run3 3 resnet    16x4 16x3
+run4 3 resnet, y 16x4 16x3
+run5 3 resnet    32x2 16x3
+run6 3 resnet    32x0 32x3
+
+change training to large dataset
+run7 3 resnet, a 3x4  3x2
+
+change from 64x64 to 32x32 image size
+run9  3 resnet, a 3x0  3x3
+run10 3 resnet, a 3x8  3x3
+
+change from 32x32 to 128x128 image size
+run11 3 resnet, a 3x0   3x3
+run12 3 y1, y2    3x0   3x3
+run13 3 y2        3x0   3x3
+run14 3 .001 0.1  3x0   3x3
+run15 3 y1, y2    3x0   3x3
+run16 3 y1, y2    3x3   3x3
+
+sigmoid to clipByValue no resnet
+run17 3 y1, y2    16x1  3x3
+run18 3 y1, y2     8x4  3x3
+
+restore same size resnet
+run19 3 y1, y2    16x2  3x3
+run20 3 y1, y2    32x4  3x3
+run21 3            8x0  8x4
+run22 3           16x0 16x4
+
+run23 3           3x0  3x3
+run24 3           3x3  3x3
+run25 3           3x6  3x3
+run26 3          32x4  3x3
+
+switch to simpler training and 64x64 image
+run27 5x5        64x1  64x5
+
+switch to 128x128 image
+run28 3x3        64x1  64x5
